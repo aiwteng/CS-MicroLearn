@@ -290,27 +290,27 @@ const DashboardScreen = ({ userProgress, skills, onSkillSelect, userName, onLogo
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-teal-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-center">
+        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 mb-6">
+          <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Welcome back, {userName}! 👋</h1>
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome back, {userName}! 👋</h1>
               <p className="text-gray-600 mt-1">Continue your learning journey</p>
             </div>
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-3 md:gap-4 items-center justify-between md:justify-end flex-wrap">
               <div className="text-center">
-                <div className="text-3xl font-bold text-cyan-600">{userProgress.currentXP}</div>
-                <div className="text-sm text-gray-500">Total XP</div>
+                <div className="text-2xl md:text-3xl font-bold text-cyan-600">{userProgress.currentXP}</div>
+                <div className="text-xs md:text-sm text-gray-500">Total XP</div>
               </div>
               <div className="text-center">
-                <div className="text-3xl font-bold text-orange-500">{userProgress.streak}</div>
-                <div className="text-sm text-gray-500">Day Streak 🔥</div>
+                <div className="text-2xl md:text-3xl font-bold text-orange-500">{userProgress.streak}</div>
+                <div className="text-xs md:text-sm text-gray-500">Day Streak 🔥</div>
               </div>
               <button
                 onClick={onLogout}
-                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+                className="bg-red-500 hover:bg-red-600 text-white font-semibold px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base"
                 title="Logout"
               >
-                <LogOut className="w-5 h-5" />
+                <LogOut className="w-4 h-4 md:w-5 md:h-5" />
                 Logout
               </button>
             </div>
