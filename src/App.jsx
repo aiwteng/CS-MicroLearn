@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { PlayCircle, Lock, CheckCircle, Clock, Code, Trophy, ArrowRight, BookOpen, Zap, LogIn, Mail, KeyRound, LogOut } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+import { PlayCircle, Lock, CheckCircle, Clock, Code, Trophy, ArrowRight, BookOpen, Zap, LogIn, Mail, KeyRound, LogOut, User, Award, Flame, Medal, Bell, X, Search, Filter, Star } from 'lucide-react';
 
 // ============================================
 // DATA AND TYPES
@@ -12,6 +12,9 @@ const SKILLS_DATA = [
     category: 'Fundamentals',
     duration: '7 min',
     xp: 50,
+    difficulty: 'Beginner',
+    prerequisites: ['Python Basic Syntax', 'Variables'],
+    whatYouWillBuild: 'A number guessing game loop',
     completed: false,
     locked: false,
     description: 'Master for and while loops with practical examples',
@@ -41,6 +44,9 @@ const SKILLS_DATA = [
     category: 'Data Structures',
     duration: '8 min',
     xp: 60,
+    difficulty: 'Intermediate',
+    prerequisites: ['Lists', 'Loops'],
+    whatYouWillBuild: 'A shopping cart total calculator',
     completed: false,
     locked: false,
     description: 'Learn array manipulation and common patterns',
@@ -67,6 +73,9 @@ const SKILLS_DATA = [
   {
     id: 'recursion-basics',
     title: 'Recursion Basics',
+    difficulty: 'Advanced',
+    prerequisites: ['Functions', 'Control Flow'],
+    whatYouWillBuild: 'A fractal tree generator',
     category: 'Advanced',
     duration: '10 min',
     xp: 80,
@@ -96,6 +105,9 @@ const SKILLS_DATA = [
   {
     id: 'sorting-algorithms',
     title: 'Sorting Algorithms',
+    difficulty: 'Intermediate',
+    prerequisites: ['Arrays', 'Loops', 'Conditionals'],
+    whatYouWillBuild: 'A custom visualization of sorting',
     category: 'Algorithms',
     duration: '12 min',
     xp: 100,
@@ -125,6 +137,9 @@ const SKILLS_DATA = [
   {
     id: 'binary-search',
     title: 'Binary Search',
+    difficulty: 'Intermediate',
+    prerequisites: ['Sorted Arrays', 'While Loops'],
+    whatYouWillBuild: 'A dictionary word finder',
     category: 'Algorithms',
     duration: '9 min',
     xp: 70,
@@ -152,6 +167,10 @@ const SKILLS_DATA = [
     }
   },
   {
+    difficulty: 'Advanced',
+    prerequisites: ['Arrays', 'Functions'],
+    whatYouWillBuild: 'A simple caching system',
+
     id: 'hash-tables',
     title: 'Hash Tables',
     category: 'Data Structures',
@@ -211,7 +230,7 @@ const LoginScreen = ({ onLogin }) => {
         {/* Login Card */}
         <div className="bg-white rounded-2xl shadow-2xl p-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Welcome Back</h2>
-          
+
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -282,21 +301,95 @@ const LoginScreen = ({ onLogin }) => {
 };
 
 // ============================================
+// COMPONENT: NOTIFICATIONS PANEL
+// ============================================
+
+const NotificationsPanel = ({ onClose }) => {
+  const notifications = [
+    { id: 1, title: 'New skill added', message: 'Check out "Advanced Recursion"!', type: 'info', time: '2m ago' },
+    { id: 2, title: 'Streak milestone', message: 'You reached a 3-day streak!', type: 'success', time: '1h ago' },
+    { id: 3, title: 'Badge unlocked', message: 'You earned the "First Skill" badge', type: 'award', time: '1d ago' }
+  ];
+
+  return (
+    <div className="absolute top-16 right-0 w-80 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+      <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+          <Bell className="w-4 h-4 text-cyan-600" /> Notifications
+        </h3>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+      <div className="max-h-96 overflow-y-auto">
+        {notifications.map(n => (
+          <div key={n.id} className="p-4 border-b border-gray-50 hover:bg-gray-50 transition-colors">
+            <div className="flex items-start gap-3">
+              <div className={`w-2 h-2 rounded-full mt-2 flex-shrink-0 ${n.type === 'info' ? 'bg-blue-500' : n.type === 'success' ? 'bg-green-500' : 'bg-amber-500'}`} />
+              <div>
+                <h4 className="text-sm font-semibold text-gray-900">{n.title}</h4>
+                <p className="text-xs text-gray-600 mt-1">{n.message}</p>
+                <span className="text-[10px] text-gray-400 mt-2 block">{n.time}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="p-3 text-center bg-gray-50 border-t border-gray-100">
+        <button className="text-xs font-semibold text-cyan-600 hover:text-cyan-700">Mark all as read</button>
+      </div>
+    </div>
+  );
+};
+
+// ============================================
 // SCREEN 1: DASHBOARD
 // ============================================
 
-const DashboardScreen = ({ userProgress, skills, onSkillSelect, userName, onLogout }) => {
+const DashboardScreen = ({ userProgress, skills, onSkillSelect, userName, onLogout, onProfile }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const categories = ['All', ...new Set(skills.map(s => s.category))];
+
+  const filteredSkills = skills.filter(skill => {
+    const matchesSearch = skill.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      skill.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'All' || skill.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-teal-50 p-6">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 mb-6">
+        <div className="bg-white rounded-2xl shadow-sm p-4 md:p-6 mb-6 relative">
           <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Welcome back, {userName}! 👋</h1>
               <p className="text-gray-600 mt-1">Continue your learning journey</p>
             </div>
-            <div className="flex gap-3 md:gap-4 items-center justify-between md:justify-end flex-wrap">
+            <div className="flex gap-3 md:gap-4 items-center justify-between md:justify-end flex-wrap relative">
+              <div className="relative">
+                <button
+                  onClick={() => setShowNotifications(!showNotifications)}
+                  className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors relative"
+                >
+                  <Bell className="w-6 h-6" />
+                  <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                </button>
+                {showNotifications && <NotificationsPanel onClose={() => setShowNotifications(false)} />}
+              </div>
+
+              <button
+                onClick={onProfile}
+                className="bg-white hover:bg-gray-50 text-gray-700 font-semibold px-3 md:px-4 py-2 rounded-lg flex items-center gap-2 transition-colors text-sm md:text-base border-2 border-gray-200"
+                title="Profile"
+              >
+                <User className="w-4 h-4 md:w-5 md:h-5" />
+                Profile
+              </button>
               <div className="text-center">
                 <div className="text-2xl md:text-3xl font-bold text-cyan-600">{userProgress.currentXP}</div>
                 <div className="text-xs md:text-sm text-gray-500">Total XP</div>
@@ -317,45 +410,294 @@ const DashboardScreen = ({ userProgress, skills, onSkillSelect, userName, onLogo
           </div>
         </div>
 
-        {/* Skill Tree */}
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Skill Tree</h2>
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {skills.map((skill) => {
-            const isCompleted = userProgress.completedSkills.includes(skill.id);
-            return (
-              <div
-                key={skill.id}
-                onClick={() => onSkillSelect(skill)}
-                className={`bg-white rounded-xl shadow-sm p-6 transition-all cursor-pointer ${
-                  skill.locked 
-                    ? 'opacity-50 cursor-not-allowed' 
+        {/* Search and Filters */}
+        <div className="mb-8 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Search skills by title or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-cyan-500 focus:outline-none transition-colors"
+              />
+            </div>
+
+            {/* Category Chips - Desktop (can be horizontal scroll on mobile) */}
+            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+              {categories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-4 py-2 rounded-full whitespace-nowrap text-sm font-semibold transition-colors ${selectedCategory === cat
+                      ? 'bg-cyan-600 text-white shadow-md'
+                      : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                    }`}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Skill Tree / Browse Grid */}
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-gray-900">Browse All Skills</h2>
+          <span className="text-sm text-gray-500">{filteredSkills.length} skills found</span>
+        </div>
+
+        {filteredSkills.length > 0 ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSkills.map((skill) => {
+              const isCompleted = userProgress.completedSkills.includes(skill.id);
+              return (
+                <div
+                  key={skill.id}
+                  onClick={() => onSkillSelect(skill)}
+                  className={`bg-white rounded-xl shadow-sm p-6 transition-all cursor-pointer ${skill.locked
+                    ? 'opacity-50 cursor-not-allowed'
                     : 'hover:shadow-lg hover:scale-105'
-                }`}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <span className="text-xs font-semibold text-cyan-600 bg-cyan-50 px-3 py-1 rounded-full">
-                    {skill.category}
-                  </span>
-                  {isCompleted && <CheckCircle className="w-6 h-6 text-green-500" />}
-                  {skill.locked && <Lock className="w-6 h-6 text-gray-400" />}
+                    }`}
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <span className="text-xs font-semibold text-cyan-600 bg-cyan-50 px-3 py-1 rounded-full">
+                      {skill.category}
+                    </span>
+                    {isCompleted && <CheckCircle className="w-6 h-6 text-green-500" />}
+                    {skill.locked && <Lock className="w-6 h-6 text-gray-400" />}
+                  </div>
+
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{skill.title}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{skill.description}</p>
+
+                  {/* Difficulty Badge */}
+                  <div className="mb-4">
+                    <span className={`text-xs px-2 py-1 rounded border ${skill.difficulty === 'Beginner' ? 'bg-green-50 text-green-700 border-green-200' :
+                        skill.difficulty === 'Intermediate' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                          'bg-red-50 text-red-700 border-red-200'
+                      }`}>
+                      {skill.difficulty}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-sm">
+                    <div className="flex items-center text-gray-500">
+                      <Clock className="w-4 h-4 mr-1" />
+                      {skill.duration}
+                    </div>
+                    <div className="flex items-center text-indigo-600 font-semibold">
+                      <Zap className="w-4 h-4 mr-1" />
+                      {skill.xp} XP
+                    </div>
+                  </div>
                 </div>
-                
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{skill.title}</h3>
-                <p className="text-sm text-gray-600 mb-4">{skill.description}</p>
-                
-                <div className="flex items-center justify-between text-sm">
-                  <div className="flex items-center text-gray-500">
-                    <Clock className="w-4 h-4 mr-1" />
-                    {skill.duration}
-                  </div>
-                  <div className="flex items-center text-indigo-600 font-semibold">
-                    <Zap className="w-4 h-4 mr-1" />
-                    {skill.xp} XP
-                  </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm">
+            <Search className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900">No skills found</h3>
+            <p className="text-gray-500">Try adjusting your search or category filter</p>
+            <button
+              onClick={() => { setSearchQuery(''); setSelectedCategory('All'); }}
+              className="mt-4 text-cyan-600 font-semibold hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ============================================
+// SCREEN 1.5: PROFILE
+// ============================================
+
+const ProfileScreen = ({ userName, setUserName, userEmail, userProgress, totalSkills, onBack, onLogout }) => {
+  const [draftName, setDraftName] = useState(userName);
+
+  const stats = useMemo(() => {
+    const completedCount = userProgress.completedSkills.length;
+    const completionPct = totalSkills > 0 ? Math.round((completedCount / totalSkills) * 100) : 0;
+
+    const badges = [
+      {
+        id: 'first-skill',
+        title: 'First Skill',
+        description: 'Complete 1 skill',
+        unlocked: completedCount >= 1,
+        Icon: Award,
+        accent: 'text-amber-600 bg-amber-50 border-amber-200'
+      },
+      {
+        id: 'xp-500',
+        title: 'XP Collector',
+        description: 'Reach 500 XP',
+        unlocked: userProgress.currentXP >= 500,
+        Icon: Trophy,
+        accent: 'text-cyan-600 bg-cyan-50 border-cyan-200'
+      },
+      {
+        id: 'streak-3',
+        title: 'On Fire',
+        description: 'Maintain a 3-day streak',
+        unlocked: userProgress.streak >= 3,
+        Icon: Flame,
+        accent: 'text-orange-600 bg-orange-50 border-orange-200'
+      },
+      {
+        id: 'completion-50',
+        title: 'Halfway There',
+        description: 'Complete 50% of skills',
+        unlocked: completionPct >= 50,
+        Icon: Medal,
+        accent: 'text-indigo-600 bg-indigo-50 border-indigo-200'
+      }
+    ];
+
+    const unlockedBadges = badges.filter(b => b.unlocked).length;
+    return { completedCount, completionPct, badges, unlockedBadges };
+  }, [userProgress.completedSkills.length, userProgress.currentXP, userProgress.streak, totalSkills]);
+
+  const initials = useMemo(() => {
+    const cleaned = (userName || '').trim();
+    if (!cleaned) return 'U';
+    const parts = cleaned.split(/\s+/).filter(Boolean);
+    const first = parts[0]?.[0] ?? 'U';
+    const second = (parts.length > 1 ? parts[parts.length - 1]?.[0] : cleaned[1]) ?? '';
+    return (first + second).toUpperCase();
+  }, [userName]);
+
+  const saveName = () => {
+    const next = draftName.trim();
+    if (next) setUserName(next);
+    else setDraftName(userName);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-teal-50 p-6">
+      <div className="max-w-5xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={onBack}
+            className="text-cyan-700 hover:text-cyan-800 font-semibold"
+          >
+            ← Back to Dashboard
+          </button>
+          <button
+            onClick={onLogout}
+            className="bg-red-500 hover:bg-red-600 text-white font-semibold px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
+            title="Logout"
+          >
+            <LogOut className="w-5 h-5" />
+            Logout
+          </button>
+        </div>
+
+        <div className="grid lg:grid-cols-3 gap-6">
+          {/* Profile Card */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="flex items-center gap-4">
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500 to-teal-500 text-white flex items-center justify-center text-xl font-bold">
+                  {initials}
+                </div>
+                <div className="flex-1">
+                  <div className="text-xs font-semibold text-cyan-700 bg-cyan-50 inline-flex px-3 py-1 rounded-full">Student</div>
+                  <h1 className="text-2xl font-bold text-gray-900 mt-2">{userName}</h1>
+                  {userEmail && <p className="text-sm text-gray-500 mt-1">{userEmail}</p>}
                 </div>
               </div>
-            );
-          })}
+
+              <div className="mt-6">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">Display name</label>
+                <div className="flex gap-2">
+                  <input
+                    value={draftName}
+                    onChange={(e) => setDraftName(e.target.value)}
+                    className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-cyan-500 focus:outline-none transition-colors"
+                    placeholder="Your name"
+                  />
+                  <button
+                    onClick={saveName}
+                    className="bg-cyan-600 hover:bg-cyan-700 text-white font-semibold px-4 py-3 rounded-xl transition-colors"
+                  >
+                    Save
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Prototype-only: name changes aren’t saved after refresh.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Progress + Badges */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Progress Summary</h2>
+              <div className="grid sm:grid-cols-3 gap-4">
+                <div className="bg-cyan-50 rounded-xl p-4 border-2 border-cyan-100">
+                  <div className="text-sm text-gray-600">Total XP</div>
+                  <div className="text-3xl font-bold text-cyan-700 mt-1">{userProgress.currentXP}</div>
+                </div>
+                <div className="bg-orange-50 rounded-xl p-4 border-2 border-orange-100">
+                  <div className="text-sm text-gray-600">Streak</div>
+                  <div className="text-3xl font-bold text-orange-600 mt-1">{userProgress.streak} 🔥</div>
+                </div>
+                <div className="bg-indigo-50 rounded-xl p-4 border-2 border-indigo-100">
+                  <div className="text-sm text-gray-600">Skills Completed</div>
+                  <div className="text-3xl font-bold text-indigo-700 mt-1">{stats.completedCount}/{totalSkills}</div>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-gray-600">Overall completion</span>
+                  <span className="font-semibold text-gray-900">{stats.completionPct}%</span>
+                </div>
+                <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-3 bg-gradient-to-r from-cyan-500 to-teal-500"
+                    style={{ width: `${stats.completionPct}%` }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">Badges</h2>
+                <div className="text-sm text-gray-500">Unlocked: <span className="font-semibold text-gray-900">{stats.unlockedBadges}</span>/{stats.badges.length}</div>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-4">
+                {stats.badges.map(({ id, title, description, unlocked, Icon, accent }) => (
+                  <div
+                    key={id}
+                    className={`rounded-xl border-2 p-4 flex gap-3 items-start ${unlocked ? accent : 'border-gray-200 bg-gray-50 opacity-70'}`}
+                  >
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${unlocked ? 'bg-white bg-opacity-40' : 'bg-white'} `}>
+                      <Icon className={`w-5 h-5 ${unlocked ? '' : 'text-gray-400'}`} />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-bold text-gray-900">{title}</h3>
+                        {unlocked ? (
+                          <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-1 rounded-full">Unlocked</span>
+                        ) : (
+                          <span className="text-xs font-semibold text-gray-600 bg-white px-2 py-1 rounded-full border border-gray-200">Locked</span>
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1">{description}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -392,6 +734,34 @@ const OverviewScreen = ({ selectedSkill, onBack, onStart }) => {
                 <Clock className="w-4 h-4 mr-1" />
                 {selectedSkill.duration}
               </div>
+            </div>
+          </div>
+
+          {/* Key Info Cards */}
+          <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100">
+              <div className="flex items-center gap-2 mb-2 text-blue-700 font-semibold">
+                <Medal className="w-5 h-5" /> Difficulty
+              </div>
+              <div className="text-gray-900 font-medium">{selectedSkill.difficulty || 'All Levels'}</div>
+            </div>
+
+            <div className="bg-amber-50 p-4 rounded-xl border border-amber-100">
+              <div className="flex items-center gap-2 mb-2 text-amber-700 font-semibold">
+                <BookOpen className="w-5 h-5" /> Prerequisites
+              </div>
+              <div className="text-gray-900 font-medium text-sm">
+                {selectedSkill.prerequisites && selectedSkill.prerequisites.length > 0
+                  ? selectedSkill.prerequisites.join(', ')
+                  : 'None'}
+              </div>
+            </div>
+
+            <div className="bg-purple-50 p-4 rounded-xl border border-purple-100">
+              <div className="flex items-center gap-2 mb-2 text-purple-700 font-semibold">
+                <Code className="w-5 h-5" /> What you'll build
+              </div>
+              <div className="text-gray-900 font-medium text-sm">{selectedSkill.whatYouWillBuild || 'Practice Exercises'}</div>
             </div>
           </div>
 
@@ -439,7 +809,7 @@ const VideoScreen = ({ selectedSkill, videoProgress, onComplete }) => {
 
           {/* Progress Bar */}
           <div className="bg-gray-700 h-2">
-            <div 
+            <div
               className="bg-cyan-500 h-2 transition-all duration-300"
               style={{ width: `${videoProgress}%` }}
             />
@@ -448,7 +818,7 @@ const VideoScreen = ({ selectedSkill, videoProgress, onComplete }) => {
           {/* Controls */}
           <div className="p-6">
             <h2 className="text-2xl font-bold text-white mb-4">{selectedSkill.title}</h2>
-            
+
             {/* Interactive Pause Point */}
             {videoProgress < 100 && (
               <div className="bg-cyan-900 bg-opacity-50 border-2 border-cyan-500 rounded-xl p-4 mb-4">
@@ -574,17 +944,16 @@ const QuizScreen = ({ selectedSkill, quizAnswers, onAnswerSelect, onSubmit }) =>
                       key={oIdx}
                       onClick={() => onAnswerSelect(qIdx, oIdx)}
                       disabled={showFeedback}
-                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                        showFeedback
-                          ? isCorrect
-                            ? 'border-green-500 bg-green-50'
-                            : isSelected
+                      className={`w-full text-left p-4 rounded-xl border-2 transition-all ${showFeedback
+                        ? isCorrect
+                          ? 'border-green-500 bg-green-50'
+                          : isSelected
                             ? 'border-red-500 bg-red-50'
                             : 'border-gray-200'
-                          : isSelected
+                        : isSelected
                           ? 'border-cyan-500 bg-cyan-50'
                           : 'border-gray-200 hover:border-cyan-300'
-                      }`}
+                        }`}
                     >
                       <div className="flex items-center justify-between">
                         <span className="text-gray-900">{option}</span>
@@ -597,11 +966,10 @@ const QuizScreen = ({ selectedSkill, quizAnswers, onAnswerSelect, onSubmit }) =>
                 })}
               </div>
               {quizAnswers[qIdx] !== undefined && (
-                <div className={`mt-3 p-4 rounded-lg ${
-                  quizAnswers[qIdx] === q.correct ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
-                }`}>
-                  {quizAnswers[qIdx] === q.correct 
-                    ? '✓ Correct! Well done.' 
+                <div className={`mt-3 p-4 rounded-lg ${quizAnswers[qIdx] === q.correct ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'
+                  }`}>
+                  {quizAnswers[qIdx] === q.correct
+                    ? '✓ Correct! Well done.'
                     : `✗ Not quite. The correct answer is: ${q.options[q.correct]}`
                   }
                 </div>
@@ -634,7 +1002,7 @@ const ProgressScreen = ({ selectedSkill, userProgress, onContinue }) => {
           <div className="bg-cyan-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
             <Trophy className="w-12 h-12 text-cyan-600" />
           </div>
-          
+
           <h1 className="text-4xl font-bold text-gray-900 mb-3">Skill Unlocked! 🎉</h1>
           <p className="text-xl text-gray-600 mb-8">
             You've mastered <span className="font-semibold text-cyan-600">{selectedSkill.title}</span>
@@ -672,6 +1040,7 @@ const ProgressScreen = ({ selectedSkill, userProgress, onContinue }) => {
 const MicrolearningPlatform = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [selectedSkill, setSelectedSkill] = useState(null);
   const [videoProgress, setVideoProgress] = useState(0);
@@ -685,12 +1054,14 @@ const MicrolearningPlatform = () => {
   const handleLogin = (email) => {
     const name = email.split('@')[0];
     setUserName(name.charAt(0).toUpperCase() + name.slice(1));
+    setUserEmail(email);
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
     setUserName('');
+    setUserEmail('');
     setCurrentScreen('dashboard');
     setSelectedSkill(null);
     setQuizAnswers({});
@@ -719,7 +1090,7 @@ const MicrolearningPlatform = () => {
   };
 
   const handleAnswerSelect = (questionIdx, answerIdx) => {
-    setQuizAnswers({...quizAnswers, [questionIdx]: answerIdx});
+    setQuizAnswers({ ...quizAnswers, [questionIdx]: answerIdx });
   };
 
   const submitQuiz = () => {
@@ -738,6 +1109,10 @@ const MicrolearningPlatform = () => {
     setQuizAnswers({});
   };
 
+  const goToProfile = () => {
+    setCurrentScreen('profile');
+  };
+
   // Show login screen if not logged in
   if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
@@ -751,6 +1126,18 @@ const MicrolearningPlatform = () => {
         skills={SKILLS_DATA}
         onSkillSelect={handleSkillSelect}
         userName={userName}
+        onLogout={handleLogout}
+        onProfile={goToProfile}
+      />
+    ),
+    profile: (
+      <ProfileScreen
+        userName={userName}
+        setUserName={setUserName}
+        userEmail={userEmail}
+        userProgress={userProgress}
+        totalSkills={SKILLS_DATA.length}
+        onBack={goToDashboard}
         onLogout={handleLogout}
       />
     ),
